@@ -1,8 +1,9 @@
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { persistStore, persistReducer } from 'redux-persist';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Import slices (to be created)
+// Import slices
+import homeSlice from './slices/homeSlice';
 // import videoSlice from './video/videoSlice';
 // import librarySlice from './library/librarySlice';
 // import userSlice from './user/userSlice';
@@ -14,8 +15,13 @@ const persistConfig = {
   whitelist: ['user', 'library'], // Only persist user and library data
 };
 
-// Temporary empty reducer until slices are created
-const rootReducer = (state = {}, action: any) => state;
+const rootReducer = combineReducers({
+  home: homeSlice,
+  // video: videoSlice,
+  // library: librarySlice,
+  // user: userSlice,
+  // quiz: quizSlice,
+});
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 
@@ -31,5 +37,5 @@ export const store = configureStore({
 
 export const persistor = persistStore(store);
 
-export type RootState = ReturnType<typeof store.getState>;
+export type RootState = ReturnType<typeof rootReducer>;
 export type AppDispatch = typeof store.dispatch;
