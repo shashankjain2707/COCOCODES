@@ -4,9 +4,17 @@ EduTube is a React Native application that provides a focused learning environme
 
 ## Current Implementation
 
+### Authentication System
+
+- **Firebase Authentication** - Email/password sign up and sign in
+- **Firestore Integration** - User data storage and management
+- **AuthScreen** - Login/SignUp page with glassmorphism design
+- **Protected Routes** - Conditional navigation based on auth state
+- **Sign Out Functionality** - Available in Header profile dropdown
+
 ### HomeScreen Components
 
-1. **Header** - Search bar, logo, notifications, and profile sections
+1. **Header** - Search bar, logo, notifications, and profile sections with sign out
 2. **WelcomeSection** - Personalized greeting with study progress tracking
 3. **QuickActions** - Quick access buttons for common actions
 4. **SmartRecommendations** - Content suggestions with thumbnail previews
@@ -17,10 +25,14 @@ EduTube is a React Native application that provides a focused learning environme
 
 ### Technical Features
 
-- Glassmorphism design system with semi-transparent elements
+- **Firebase Authentication** - Complete email/password auth flow
+- **Firestore Database** - User data persistence and management  
+- **Protected Navigation** - Auth-based route protection
+- **Glassmorphism Design** - Consistent across auth and home screens
+- **Redux State Management** - Auth state with TypeScript
+- **Form Validation** - Input validation and error handling
 - Diagonal gradient background with blue color scheme
 - Custom navigation system replacing React Navigation bottom tabs
-- Redux state management with TypeScript
 - Responsive design for multiple screen sizes
 - Self-contained components with mock data
 
@@ -31,6 +43,22 @@ EduTube is a React Native application that provides a focused learning environme
 - Glass card components with backdrop blur effects
 - Professional typography hierarchy
 - Interactive hover and focus states
+
+## Firebase Setup
+
+1. Create a Firebase project at https://console.firebase.google.com
+2. Enable Authentication with Email/Password provider
+3. Create a Firestore database
+4. Copy your Firebase config to the `.env` file:
+
+```bash
+EXPO_PUBLIC_FIREBASE_API_KEY=your_api_key_here
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=your_project_id_here
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id_here
+EXPO_PUBLIC_FIREBASE_APP_ID=your_app_id_here
+```
 
 ## Installation
 
@@ -77,9 +105,19 @@ The app uses a custom navigation system with:
 ## State Management
 
 Redux store with slices for:
+- **Authentication** - User auth state and Firebase integration
 - User data and preferences
 - Home screen content
 - Navigation state
 - Theme configuration
+
+## Authentication Flow
+
+1. **Initial Load** - App checks Firebase auth state
+2. **Unauthenticated** - Shows AuthScreen with login/signup forms
+3. **Sign Up** - Creates Firebase user and Firestore user document
+4. **Sign In** - Authenticates user and loads user data from Firestore
+5. **Authenticated** - Shows HomeScreen with full app functionality
+6. **Sign Out** - Available from Header profile dropdown
 
 All components use mock data and are ready for backend integration.

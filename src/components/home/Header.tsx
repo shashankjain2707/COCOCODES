@@ -9,6 +9,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { theme } from '../../styles/theme';
 import { GlassCard } from '../common/GlassCard';
+import { useAuth } from '../../hooks/useAuth';
 
 interface Notification {
   id: number;
@@ -24,6 +25,7 @@ interface ProfileAction {
 }
 
 export const Header: React.FC = () => {
+  const { signOut: handleSignOut, userData } = useAuth();
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
@@ -39,7 +41,17 @@ export const Header: React.FC = () => {
     { label: "View Profile", icon: "account", action: "profile" },
     { label: "Bookmarks", icon: "bookmark", action: "bookmarks" },
     { label: "History", icon: "history", action: "history" },
+    { label: "Sign Out", icon: "logout", action: "signout" },
   ];
+
+  const handleProfileAction = (action: string) => {
+    setShowProfile(false);
+    if (action === 'signout') {
+      handleSignOut();
+    } else {
+      console.log(`Profile action: ${action}`);
+    }
+  };
 
   const unreadCount = notifications.filter(n => n.unread).length;
 
@@ -156,6 +168,7 @@ export const Header: React.FC = () => {
                 <TouchableOpacity
                   key={index}
                   style={styles.profileActionItem}
+                  onPress={() => handleProfileAction(action.action)}
                 >
                   <MaterialCommunityIcons 
                     name={action.icon} 

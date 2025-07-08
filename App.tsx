@@ -11,6 +11,9 @@ import { store, persistor } from './src/store';
 // Navigation
 import { AppNavigator } from './src/navigation/AppNavigator';
 
+// Context
+import { AuthProvider } from './src/contexts/AuthContext';
+
 // Theme
 import { theme } from './src/styles/theme';
 
@@ -25,10 +28,12 @@ export default function App() {
   return (
     <Provider store={store}>
       <PersistGate loading={<LoadingScreen />} persistor={persistor}>
-        <NavigationContainer>
-          <AppNavigator />
-          <StatusBar style="light" backgroundColor={theme.colors.background} />
-        </NavigationContainer>
+        <AuthProvider>
+          <NavigationContainer>
+            <AppNavigator />
+            <StatusBar style="light" backgroundColor={theme.colors.background} />
+          </NavigationContainer>
+        </AuthProvider>
       </PersistGate>
     </Provider>
   );
