@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { HomeState, User, StudySession, Category, Activity, RecommendedContent } from '../types/home';
+import { HomeState, User, StudySession, Category, Activity, RecommendedContent } from '../../types/home';
 
 // Mock data for development
 const mockCategories: Category[] = [

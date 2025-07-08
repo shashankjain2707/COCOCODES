@@ -1,4 +1,6 @@
 // EduTube Home Screen Types
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
 
 export interface User {
   id: string;
@@ -71,9 +73,7 @@ export interface RecommendedContent {
 }
 
 // Component Props Interfaces
-export interface HomeScreenProps {
-  navigation: any;
-}
+export interface HomeScreenProps extends NativeStackScreenProps<RootStackParamList, 'Home'> {}
 
 export interface HeaderProps {
   user: User;

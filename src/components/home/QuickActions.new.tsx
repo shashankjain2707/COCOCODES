@@ -8,19 +8,26 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { theme } from '../../styles/theme';
+import { QuickActionsProps } from '../../types/home';
 
-export const QuickActions: React.FC = () => {
+export const QuickActions: React.FC<QuickActionsProps> = ({
+  continueSession,
+  onContinuePress,
+  onNewSessionPress,
+  onLibraryPress,
+  onStatsPress,
+}) => {
   const [hoveredAction, setHoveredAction] = useState<string | null>(null);
 
   const actions = [
     {
       id: "continue",
       label: "Continue",
-      sublabel: "Calculus III - 65%",
+      sublabel: continueSession ? `${continueSession.title} - ${continueSession.progress}%` : "Calculus III - 65%",
       icon: "play",
-      onPress: () => {},
+      onPress: onContinuePress,
       gradient: ['#2563EB', '#1D4ED8'], // from-blue-600 to-blue-700
-      progress: 65,
+      progress: continueSession?.progress || 65,
       isPrimary: true,
     },
     {
@@ -28,7 +35,7 @@ export const QuickActions: React.FC = () => {
       label: "New Session", 
       sublabel: "Start fresh",
       icon: "plus",
-      onPress: () => {},
+      onPress: onNewSessionPress,
       gradient: ['#475569', '#1E40AF'], // from-navy-600 to-blue-800
       isPrimary: true,
     },
@@ -37,7 +44,7 @@ export const QuickActions: React.FC = () => {
       label: "Library",
       sublabel: "24 saved",
       icon: "book-open-variant",
-      onPress: () => {},
+      onPress: onLibraryPress,
       gradient: ['rgba(30, 64, 175, 0.2)', 'rgba(30, 64, 175, 0.3)'], // from-blue-900/20 to-blue-800/30
       border: true,
     },
@@ -46,7 +53,7 @@ export const QuickActions: React.FC = () => {
       label: "Stats", 
       sublabel: "2h 45m today",
       icon: "chart-bar",
-      onPress: () => {},
+      onPress: onStatsPress,
       gradient: ['rgba(30, 64, 175, 0.2)', 'rgba(30, 64, 175, 0.3)'], // from-blue-900/20 to-blue-800/30
       border: true,
     },

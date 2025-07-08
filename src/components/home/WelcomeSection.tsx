@@ -4,201 +4,112 @@ import {
   Text,
   StyleSheet,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { theme } from '../../styles/theme';
-import { WelcomeSectionProps } from '../../types/home';
+import { GlassCard } from '../common/GlassCard';
 
-export const WelcomeSection: React.FC<WelcomeSectionProps> = ({ user }) => {
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  };
-
+export const WelcomeSection: React.FC = () => {
   return (
-    <View style={styles.container}>
-      {/* Main Hero Section */}
-      <View style={styles.heroSection}>
-        <View style={styles.greetingContainer}>
-          <Text style={styles.greeting}>{getGreeting()}, {user.name} 👋</Text>
-          <Text style={styles.subtitle}>Ready to continue your learning journey?</Text>
+    <GlassCard style={styles.container}>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.greeting}>Good evening, Alex</Text>
+          <Text style={styles.subtitle}>Ready to continue learning?</Text>
+        </View>
+
+        <View style={styles.timeSection}>
+          <View style={styles.timeContainer}>
+            <MaterialCommunityIcons name="clock-outline" size={16} color={theme.colors.blue[100]} />
+            <Text style={styles.timeText}>2h 45m</Text>
+          </View>
+          <Text style={styles.timeLabel}>today</Text>
+        </View>
+      </View>
+
+      {/* Enhanced Progress Bar */}
+      <View style={styles.progressSection}>
+        <View style={styles.progressHeader}>
+          <Text style={styles.progressLabel}>Daily goal</Text>
+          <Text style={styles.progressPercentage}>92%</Text>
         </View>
         
-        <View style={styles.studyStatsCard}>
-          <View style={styles.studyTimeSection}>
-            <View style={styles.timeIconContainer}>
-              <Text style={styles.timeIcon}>⏰</Text>
-            </View>
-            <View style={styles.timeInfo}>
-              <Text style={styles.studyTime}>{user.studyTime}</Text>
-              <Text style={styles.studyTimeLabel}>today</Text>
-            </View>
-          </View>
+        <View style={styles.progressBarContainer}>
+          <View style={[styles.progressBar, { width: '92%' }]} />
         </View>
       </View>
-
-      {/* Progress Section */}
-      <View style={styles.progressSection}>
-        <View style={styles.progressCard}>
-          <View style={styles.progressHeader}>
-            <View style={styles.progressTitleContainer}>
-              <Text style={styles.progressIcon}>🎯</Text>
-              <Text style={styles.progressTitle}>Daily Goal</Text>
-            </View>
-            <Text style={styles.progressPercentage}>{user.dailyGoalProgress}%</Text>
-          </View>
-          
-          <View style={styles.progressBarContainer}>
-            <View style={styles.progressBarBackground}>
-              <View 
-                style={[
-                  styles.progressBarFill, 
-                  { width: `${user.dailyGoalProgress}%` }
-                ]} 
-              />
-              <View style={styles.progressBarGlow} />
-            </View>
-          </View>
-          
-          <Text style={styles.progressSubtext}>
-            Great progress! You're almost there.
-          </Text>
-        </View>
-      </View>
-    </View>
+    </GlassCard>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.lg,
+    borderColor: 'rgba(59, 130, 246, 0.2)',
+    borderWidth: 1,
   },
-  heroSection: {
+  header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: theme.spacing.xl,
-  },
-  greetingContainer: {
-    flex: 1,
-    marginRight: theme.spacing.md,
+    justifyContent: 'space-between',
   },
   greeting: {
-    fontSize: 32,
-    fontWeight: '700' as const,
-    color: theme.colors.text,
-    lineHeight: 38,
-    marginBottom: theme.spacing.xs,
+    fontSize: 20,
+    fontWeight: '500',
+    color: theme.colors.white,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: theme.typography.fontSize.md,
-    color: theme.colors.textSecondary,
-    lineHeight: 22,
-    opacity: 0.9,
+    color: theme.colors.blue[200],
+    fontSize: 14,
   },
-  studyStatsCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    minWidth: 120,
+  timeSection: {
+    alignItems: 'flex-end',
   },
-  studyTimeSection: {
+  timeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 4,
   },
-  timeIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: theme.spacing.sm,
+  timeText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.colors.blue[100],
+    marginLeft: 8,
   },
-  timeIcon: {
-    fontSize: 16,
-  },
-  timeInfo: {
-    flex: 1,
-  },
-  studyTime: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: '700' as const,
-    color: theme.colors.text,
-    lineHeight: 22,
-  },
-  studyTimeLabel: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
-    opacity: 0.8,
+  timeLabel: {
+    fontSize: 12,
+    color: theme.colors.blue[300],
   },
   progressSection: {
-    marginTop: theme.spacing.md,
-  },
-  progressCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    marginTop: 20,
   },
   progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    marginBottom: 8,
   },
-  progressTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  progressIcon: {
-    fontSize: 18,
-    marginRight: theme.spacing.sm,
-  },
-  progressTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: '600' as const,
-    color: theme.colors.text,
+  progressLabel: {
+    fontSize: 12,
+    color: theme.colors.blue[300],
   },
   progressPercentage: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: '700' as const,
-    color: theme.colors.primary,
+    fontSize: 12,
+    color: theme.colors.blue[300],
   },
   progressBarContainer: {
-    marginBottom: theme.spacing.sm,
-  },
-  progressBarBackground: {
+    width: '100%',
     height: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(30, 64, 175, 0.3)',
     borderRadius: 4,
     overflow: 'hidden',
-    position: 'relative',
   },
-  progressBarFill: {
+  progressBar: {
     height: '100%',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.blue[500],
     borderRadius: 4,
-    position: 'relative',
-  },
-  progressBarGlow: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: theme.colors.primary,
-    opacity: 0.3,
-    borderRadius: 4,
-  },
-  progressSubtext: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    opacity: 0.8,
+    shadowColor: 'rgba(59, 130, 246, 0.3)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 3,
   },
 });

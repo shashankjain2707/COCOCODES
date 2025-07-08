@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   StyleSheet,
   ScrollView,
   SafeAreaView,
   StatusBar,
+  Dimensions,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSelector, useDispatch } from 'react-redux';
 import { theme } from '../../styles/theme';
 import { HomeScreenProps } from '../../types/home';
@@ -15,12 +17,18 @@ import { RootState } from '../../store';
 import { Header } from '../../components/home/Header';
 import { WelcomeSection } from '../../components/home/WelcomeSection';
 import { QuickActions } from '../../components/home/QuickActions';
+import { SmartRecommendations } from '../../components/home/SmartRecommendations';
 import { SubjectCategories } from '../../components/home/SubjectCategories';
+import { PublicLibrarySection } from '../../components/home/PublicLibrarySection';
 import { RecentActivity } from '../../components/home/RecentActivity';
-import { RecommendedSection } from '../../components/home/RecommendedSection';
+import { BottomNavigation } from '../../components/home/BottomNavigation';
+
+const { width, height } = Dimensions.get('window');
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const dispatch = useDispatch();
+  const [activeTab, setActiveTab] = useState("home");
+  
   const { 
     user, 
     continueSession, 
@@ -44,7 +52,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   };
 
   const handleContinuePress = () => {
-    if (continueSession) {
+    if (continueSession && continueSession.videoId) {
       navigation.navigate('Player', { 
         videoId: continueSession.videoId,
         title: continueSession.title 
@@ -110,85 +118,98 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={theme.colors.background} />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
-      {/* Header - Fixed at top */}
-      <Header
-        user={user}
-        onSearchPress={handleSearchPress}
-        onProfilePress={handleProfilePress}
-        onNotificationPress={handleNotificationPress}
+      {/* Main Background Gradient - from-slate-950 via-blue-950 to-navy-950 */}
+      <LinearGradient
+        colors={[theme.colors.slate[950], theme.colors.blue[950], theme.colors.navy[900]]} // slate-950, blue-950, navy-950
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.backgroundGradient}
       />
       
-      {/* Main Content - Scrollable */}
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        bounces={true}
-      >
-        {/* Welcome Section */}
-        <View style={styles.sectionContainer}>
-          <WelcomeSection user={user} />
-        </View>
 
-        {/* Quick Actions */}
-        <View style={styles.sectionContainer}>
-          <QuickActions
-            continueSession={continueSession}
-            onContinuePress={handleContinuePress}
-            onNewSessionPress={handleNewSessionPress}
-            onLibraryPress={handleLibraryPress}
-            onStatsPress={handleStatsPress}
-          />
-        </View>
 
-        {/* Recommended Content */}
-        <View style={styles.sectionContainer}>
-          <RecommendedSection
-            content={recommendedContent}
-            onContentPress={handleRecommendedContentPress}
-            onExplorePress={handleExplorePress}
-          />
-        </View>
+      {/* Subtle grid overlay */}
+      <View style={styles.gridOverlay} />
 
-        {/* Subject Categories */}
-        <View style={styles.sectionContainer}>
-          <SubjectCategories
-            categories={categories}
-            onCategoryPress={handleCategoryPress}
-            onViewAllPress={handleViewAllCategoriesPress}
-          />
-        </View>
+      {/* Main Content Container with relative z-index */}
+      <View style={styles.contentContainer}>
+        <SafeAreaView style={styles.safeArea}>
+          <Header />
+          
+          <ScrollView 
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            bounces={true}
+          >
+            <View style={styles.mainContent}>
+              <WelcomeSection />
+              <QuickActions />
+              <SmartRecommendations />
+              <SubjectCategories />
+              <PublicLibrarySection />
+              <RecentActivity />
+            </View>
+          </ScrollView>
+        </SafeAreaView>
 
-        {/* Bottom Spacing for Tab Navigation */}
-        <View style={styles.bottomSpacer} />
-      </ScrollView>
-    </SafeAreaView>
+        <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    minHeight: height,
+    position: 'relative',
+    overflow: 'hidden',
   },
-  loadingContainer: {
+  backgroundGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
+  },
+  gridOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0.03,
+    zIndex: 1,
+    // This simulates the grid pattern effect
+    backgroundColor: 'transparent',
+  },
+  contentContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    position: 'relative',
+    zIndex: 2,
+  },
+  safeArea: {
+    flex: 1,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: 80, // pb-20 = 80px
   },
-  sectionContainer: {
-    marginBottom: theme.spacing.md,
+  mainContent: {
+    paddingHorizontal: 16, // px-4 = 16px
+    gap: 20, // space-y-5 = 20px gap
   },
-  bottomSpacer: {
-    height: 120, // Space for bottom tab navigation
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

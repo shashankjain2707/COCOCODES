@@ -46,7 +46,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({
 
   const GradientCard = () => (
     <LinearGradient
-      colors={gradientColors || ['rgba(59, 130, 246, 0.1)' as const, 'rgba(16, 185, 129, 0.1)' as const]}
+      colors={['rgba(59, 130, 246, 0.1)', 'rgba(16, 185, 129, 0.1)']}
       style={[getCardStyle(), style]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
@@ -84,12 +84,17 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
   },
   glassCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)', // bg-white/5
+    borderRadius: theme.borderRadius.xl, // rounded-xl
+    padding: theme.spacing.lg, // p-6
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    ...theme.shadows.glass,
+    borderColor: 'rgba(255, 255, 255, 0.1)', // border-white/10
+    // Note: backdrop-blur-xl effect simulated with shadow
+    shadowColor: 'rgba(59, 130, 246, 0.1)',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 20,
+    elevation: 8,
   },
   gradientCard: {
     borderRadius: theme.borderRadius.lg,

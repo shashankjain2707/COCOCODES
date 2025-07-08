@@ -1,9 +1,9 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { BottomTabNavigator } from './BottomTabNavigator';
+import { HomeScreen } from '../screens/home/HomeScreen';
 
 export type RootStackParamList = {
-  Main: undefined;
+  Home: undefined;
   Search: undefined;
   Notifications: undefined;
   Player: { videoId: string; title: string };
@@ -13,6 +13,9 @@ export type RootStackParamList = {
   ActivityHistory: undefined;
   PlaylistDetail: { playlistId: string; title: string };
   Explore: undefined;
+  Library: undefined;
+  Stats: undefined;
+  Profile: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -24,7 +27,7 @@ export const AppNavigator: React.FC = () => {
         headerShown: false,
       }}
     >
-      <Stack.Screen name="Main" component={BottomTabNavigator} />
+      <Stack.Screen name="Home" component={HomeScreen} />
       {/* Add other screens here as they are developed */}
     </Stack.Navigator>
   );
