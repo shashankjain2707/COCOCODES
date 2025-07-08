@@ -1,9 +1,8 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { User as FirebaseUser } from 'firebase/auth';
-import { authService, UserData } from '../services/firebase/auth';
+import { authService, UserData, FirebaseUser } from '../services/firebase/auth';
 
 interface AuthState {
-  user: FirebaseUser | null;
+  user: any; // Using any to avoid type conflicts between Firebase versions
   userData: UserData | null;
   isLoading: boolean;
   error: string | null;

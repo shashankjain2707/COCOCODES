@@ -1,15 +1,8 @@
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut,
-  User as FirebaseUser,
-  updateProfile,
-  signInWithPopup,
-  GoogleAuthProvider,
-  onAuthStateChanged
-} from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from './config';
+import { auth, firestore, GoogleAuthProvider, Timestamp } from './config';
+import { Platform } from 'react-native';
+
+// Define the type for FirebaseUser based on platform
+export type FirebaseUser = any; // This is a simplification to avoid type errors
 
 export interface UserData {
   uid: string;
@@ -34,48 +27,57 @@ export interface UserData {
 export const authService = {
   // Initialize auth state listener
   onAuthStateChange(callback: (user: FirebaseUser | null) => void) {
-    return onAuthStateChanged(auth, callback);
+    return auth().onAuthStateChanged(callback);
   },
 
   // Get current user
   getCurrentUser(): FirebaseUser | null {
-    return auth.currentUser;
+    return auth().currentUser;
   },
 
   // Wait for auth to be ready
   waitForAuth(): Promise<FirebaseUser | null> {
     return new Promise((resolve) => {
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
+      const unsubscribe = auth().onAuthStateChanged((user) => {
         unsubscribe();
         resolve(user);
       });
     });
   },
 
-  // Sign in with Google (Web-compatible)
+  // Sign in with Google
   async signInWithGoogle(): Promise<FirebaseUser> {
     try {
-      const provider = new GoogleAuthProvider();
+      // Setup Google Sign-In for React Native
+      const { GoogleSignin } = require('@react-native-google-signin/google-signin');
       
-      // Add additional scopes if needed
-      provider.addScope('email');
-      provider.addScope('profile');
+      // Configure Google Sign-In
+      GoogleSignin.configure({
+        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+      });
       
-      // Sign in with popup for web
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
+      // Get the user ID token
+      await GoogleSignin.hasPlayServices();
+      const { idToken } = await GoogleSignin.signIn();
+      
+      // Create a Google credential with the token
+      const googleCredential = GoogleAuthProvider.credential(idToken);
+      
+      // Sign-in with credential
+      const userCredential = await auth().signInWithCredential(googleCredential);
+      const user = userCredential.user;
       
       // Create or update user document in Firestore
-      const existingUser = await this.getUserData(user.uid);
+      const userDoc = await firestore().collection('users').doc(user.uid).get();
       
-      if (!existingUser) {
+      if (!userDoc.exists()) {
         const userData: UserData = {
           uid: user.uid,
           email: user.email!,
           displayName: user.displayName || 'User',
           photoURL: user.photoURL || undefined,
-          createdAt: serverTimestamp(),
-          lastLoginAt: serverTimestamp(),
+          createdAt: Timestamp.now(),
+          lastLoginAt: Timestamp.now(),
           studyPreferences: {
             dailyGoalMinutes: 60,
             preferredSubjects: [],
@@ -89,36 +91,36 @@ export const authService = {
           },
         };
         
-        await setDoc(doc(db, 'users', user.uid), userData);
+        await firestore().collection('users').doc(user.uid).set(userData);
       } else {
         // Update last login time
-        await setDoc(doc(db, 'users', user.uid), {
-          lastLoginAt: serverTimestamp(),
-        }, { merge: true });
+        await firestore().collection('users').doc(user.uid).update({
+          lastLoginAt: Timestamp.now(),
+        });
       }
       
       return user;
     } catch (error) {
-      console.error('Google Sign-In error:', error);
+      console.error('Google sign in error:', error);
       throw error;
     }
   },
 
   // Sign up with email and password
   async signUp(email: string, password: string, displayName: string): Promise<FirebaseUser> {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const userCredential = await auth().createUserWithEmailAndPassword(email, password);
     const user = userCredential.user;
     
     // Update user profile
-    await updateProfile(user, { displayName });
+    await user.updateProfile({ displayName });
     
     // Create user document in Firestore
     const userData: UserData = {
       uid: user.uid,
       email: user.email!,
       displayName,
-      createdAt: serverTimestamp(),
-      lastLoginAt: serverTimestamp(),
+      createdAt: Timestamp.now(),
+      lastLoginAt: Timestamp.now(),
       studyPreferences: {
         dailyGoalMinutes: 60,
         preferredSubjects: [],
@@ -132,30 +134,30 @@ export const authService = {
       },
     };
     
-    await setDoc(doc(db, 'users', user.uid), userData);
+    await firestore().collection('users').doc(user.uid).set(userData);
     return user;
   },
 
   // Sign in with email and password
   async signIn(email: string, password: string): Promise<FirebaseUser> {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await auth().signInWithEmailAndPassword(email, password);
     
     // Update last login time
-    await setDoc(doc(db, 'users', userCredential.user.uid), {
-      lastLoginAt: serverTimestamp(),
-    }, { merge: true });
+    await firestore().collection('users').doc(userCredential.user.uid).update({
+      lastLoginAt: Timestamp.now(),
+    });
     
     return userCredential.user;
   },
 
   // Sign out
   async signOut(): Promise<void> {
-    await signOut(auth);
+    await auth().signOut();
   },
 
   // Get user data from Firestore
   async getUserData(uid: string): Promise<UserData | null> {
-    const userDoc = await getDoc(doc(db, 'users', uid));
+    const userDoc = await firestore().collection('users').doc(uid).get();
     if (userDoc.exists()) {
       return userDoc.data() as UserData;
     }
@@ -164,31 +166,28 @@ export const authService = {
 
   // Update user data in Firestore
   async updateUserData(uid: string, data: Partial<UserData>): Promise<void> {
-    await setDoc(doc(db, 'users', uid), data, { merge: true });
+    await firestore().collection('users').doc(uid).update(data);
   },
 
   // Update user study stats
   async updateStudyStats(uid: string, studyMinutes: number): Promise<void> {
-    const userDoc = await getDoc(doc(db, 'users', uid));
+    const userDoc = await firestore().collection('users').doc(uid).get();
     if (userDoc.exists()) {
       const userData = userDoc.data() as UserData;
       const newTotalMinutes = (userData.stats?.totalStudyMinutes || 0) + studyMinutes;
       
-      await setDoc(doc(db, 'users', uid), {
-        stats: {
-          ...userData.stats,
-          totalStudyMinutes: newTotalMinutes,
-        },
-        lastLoginAt: serverTimestamp(),
-      }, { merge: true });
+      await firestore().collection('users').doc(uid).update({
+        'stats.totalStudyMinutes': newTotalMinutes,
+        lastLoginAt: Timestamp.now(),
+      });
     }
   },
 
   // Update user preferences
   async updatePreferences(uid: string, preferences: Partial<UserData['studyPreferences']>): Promise<void> {
-    await setDoc(doc(db, 'users', uid), {
+    await firestore().collection('users').doc(uid).update({
       studyPreferences: preferences,
-    }, { merge: true });
+    });
   },
 
   // Create study session record
@@ -199,10 +198,15 @@ export const authService = {
     subject: string;
     timestamp: any;
   }): Promise<void> {
-    const sessionRef = doc(db, 'users', uid, 'studySessions', `${Date.now()}`);
-    await setDoc(sessionRef, {
+    const sessionRef = firestore()
+      .collection('users')
+      .doc(uid)
+      .collection('studySessions')
+      .doc(`${Date.now()}`);
+      
+    await sessionRef.set({
       ...sessionData,
-      timestamp: serverTimestamp(),
+      timestamp: Timestamp.now(),
     });
   },
 };

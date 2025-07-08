@@ -7,29 +7,39 @@ import {
   Animated,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { theme } from '../../styles/theme';
 
 export const QuickActions: React.FC = () => {
+  const navigation = useNavigation();
   const [hoveredAction, setHoveredAction] = useState<string | null>(null);
 
   const actions = [
     {
-      id: "continue",
-      label: "Continue",
-      sublabel: "Calculus III - 65%",
-      icon: "play",
-      onPress: () => {},
+      id: "create-playlist",
+      label: "Create Playlist",
+      sublabel: "Add YouTube links",
+      icon: "plus-circle",
+      onPress: () => navigation.navigate('CreatePlaylist' as any),
       gradient: ['#2563EB', '#1D4ED8'], // from-blue-600 to-blue-700
-      progress: 65,
       isPrimary: true,
     },
     {
-      id: "new-session",
-      label: "New Session", 
-      sublabel: "Start fresh",
-      icon: "plus",
-      onPress: () => {},
-      gradient: ['#475569', '#1E40AF'], // from-navy-600 to-blue-800
+      id: "import-playlist",
+      label: "Import from YouTube", 
+      sublabel: "Playlist link",
+      icon: "import",
+      onPress: () => navigation.navigate('ImportPlaylist' as any),
+      gradient: ['#DC2626', '#B91C1C'], // from-red-600 to-red-700
+      isPrimary: true,
+    },
+    {
+      id: "add-notes",
+      label: "Add Notes",
+      sublabel: "Link to notes",
+      icon: "note-plus",
+      onPress: () => navigation.navigate('AddNotes' as any),
+      gradient: ['#16A34A', '#15803D'], // from-green-600 to-green-700
       isPrimary: true,
     },
     {
@@ -37,16 +47,7 @@ export const QuickActions: React.FC = () => {
       label: "Library",
       sublabel: "24 saved",
       icon: "book-open-variant",
-      onPress: () => {},
-      gradient: ['rgba(30, 64, 175, 0.2)', 'rgba(30, 64, 175, 0.3)'], // from-blue-900/20 to-blue-800/30
-      border: true,
-    },
-    {
-      id: "stats",
-      label: "Stats", 
-      sublabel: "2h 45m today",
-      icon: "chart-bar",
-      onPress: () => {},
+      onPress: () => navigation.navigate('Library' as any),
       gradient: ['rgba(30, 64, 175, 0.2)', 'rgba(30, 64, 175, 0.3)'], // from-blue-900/20 to-blue-800/30
       border: true,
     },
@@ -89,20 +90,6 @@ export const QuickActions: React.FC = () => {
               />
               <Text style={styles.actionLabel}>{action.label}</Text>
               <Text style={styles.actionSublabel}>{action.sublabel}</Text>
-
-              {/* Progress indicator for continue learning */}
-              {action.id === "continue" && action.progress && (
-                <View style={styles.progressIndicator}>
-                  <View style={styles.progressTrack}>
-                    <View 
-                      style={[
-                        styles.progressBar, 
-                        { width: `${action.progress}%` }
-                      ]} 
-                    />
-                  </View>
-                </View>
-              )}
             </View>
           </TouchableOpacity>
         ))}

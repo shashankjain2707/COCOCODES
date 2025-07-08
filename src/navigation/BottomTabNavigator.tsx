@@ -1,19 +1,16 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
 
 // Import screens
 import { HomeScreen } from '../screens/home/HomeScreen';
+import { UserProfile } from '../components/user/UserProfile';
+import { StatsScreen } from '../screens/stats/StatsScreen';
+import LibraryNavigator from './library/LibraryNavigator';
 
 // Placeholder screens for other tabs
-const LibraryScreen = () => (
-  <View style={styles.placeholderContainer}>
-    <Text style={styles.placeholderText}>Library Screen</Text>
-    <Text style={styles.placeholderSubtext}>Coming soon...</Text>
-  </View>
-);
-
 const AddScreen = () => (
   <View style={styles.placeholderContainer}>
     <Text style={styles.placeholderText}>Add Video</Text>
@@ -21,18 +18,8 @@ const AddScreen = () => (
   </View>
 );
 
-const StatsScreen = () => (
-  <View style={styles.placeholderContainer}>
-    <Text style={styles.placeholderText}>Statistics</Text>
-    <Text style={styles.placeholderSubtext}>Your learning analytics</Text>
-  </View>
-);
-
 const ProfileScreen = () => (
-  <View style={styles.placeholderContainer}>
-    <Text style={styles.placeholderText}>Profile</Text>
-    <Text style={styles.placeholderSubtext}>Manage your account</Text>
-  </View>
+  <UserProfile />
 );
 
 const Tab = createBottomTabNavigator();
@@ -64,20 +51,24 @@ export const BottomTabNavigator: React.FC = () => {
         component={HomeScreen}
         options={{
           tabBarIcon: ({ focused, color }) => (
-            <View style={styles.tabIcon}>
-              <Text style={[styles.iconText, { color }]}>🏠</Text>
-            </View>
+            <MaterialCommunityIcons
+              name="home"
+              size={24}
+              color={color}
+            />
           ),
         }}
       />
       <Tab.Screen
         name="Library"
-        component={LibraryScreen}
+        component={LibraryNavigator}
         options={{
           tabBarIcon: ({ focused, color }) => (
-            <View style={styles.tabIcon}>
-              <Text style={[styles.iconText, { color }]}>📚</Text>
-            </View>
+            <MaterialCommunityIcons
+              name="book-multiple"
+              size={24}
+              color={color}
+            />
           ),
         }}
       />
@@ -87,11 +78,14 @@ export const BottomTabNavigator: React.FC = () => {
         options={{
           tabBarIcon: ({ focused, color }) => (
             <View style={[
-              styles.tabIcon,
               styles.addTabIcon,
               { backgroundColor: focused ? theme.colors.primary : 'rgba(255, 255, 255, 0.1)' }
             ]}>
-              <Text style={[styles.iconText, { color: focused ? '#FFFFFF' : color }]}>+</Text>
+              <MaterialCommunityIcons
+                name="plus"
+                size={24}
+                color={focused ? '#FFFFFF' : color}
+              />
             </View>
           ),
         }}
@@ -101,9 +95,11 @@ export const BottomTabNavigator: React.FC = () => {
         component={StatsScreen}
         options={{
           tabBarIcon: ({ focused, color }) => (
-            <View style={styles.tabIcon}>
-              <Text style={[styles.iconText, { color }]}>📊</Text>
-            </View>
+            <MaterialCommunityIcons
+              name="chart-line"
+              size={24}
+              color={color}
+            />
           ),
         }}
       />
@@ -112,9 +108,11 @@ export const BottomTabNavigator: React.FC = () => {
         component={ProfileScreen}
         options={{
           tabBarIcon: ({ focused, color }) => (
-            <View style={styles.tabIcon}>
-              <Text style={[styles.iconText, { color }]}>👤</Text>
-            </View>
+            <MaterialCommunityIcons
+              name="account"
+              size={24}
+              color={color}
+            />
           ),
         }}
       />
@@ -142,18 +140,11 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: 'center',
   },
-  tabIcon: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 28,
-    height: 28,
-  },
   addTabIcon: {
-    borderRadius: 14,
+    borderRadius: 16,
     width: 32,
     height: 32,
-  },
-  iconText: {
-    fontSize: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

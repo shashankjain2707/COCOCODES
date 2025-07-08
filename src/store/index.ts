@@ -5,24 +5,26 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Import slices
 import homeSlice from './slices/homeSlice';
 import authSlice from './authSlice';
-// import videoSlice from './video/videoSlice';
+import videoSlice from './videoSlice';
+import quizSlice from './quizSlice';
+import userContentSlice from './userContentSlice';
 // import librarySlice from './library/librarySlice';
 // import userSlice from './user/userSlice';
-// import quizSlice from './quiz/quizSlice';
 
 const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
-  whitelist: ['auth', 'user', 'library'], // Only persist auth, user and library data
+  whitelist: ['auth', 'user', 'library', 'video', 'quiz', 'userContent'], // Include userContent state persistence
 };
 
 const rootReducer = combineReducers({
   home: homeSlice,
   auth: authSlice,
-  // video: videoSlice,
+  video: videoSlice,
+  quiz: quizSlice,
+  userContent: userContentSlice,
   // library: librarySlice,
   // user: userSlice,
-  // quiz: quizSlice,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

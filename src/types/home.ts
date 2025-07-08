@@ -73,7 +73,9 @@ export interface RecommendedContent {
 }
 
 // Component Props Interfaces
-export interface HomeScreenProps extends NativeStackScreenProps<RootStackParamList, 'Home'> {}
+export interface HomeScreenProps {
+  navigation?: any; // Make navigation optional to work with both stack and tab navigators
+}
 
 export interface HeaderProps {
   user: User;

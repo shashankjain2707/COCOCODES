@@ -39,3 +39,5 @@ yarn-error.*
 
 # documentation (exclude from version control)
 Software document.md
+IMPLEMENTATION_STATUS.md
+NEXT_STEPS.md
