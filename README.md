@@ -1,6 +1,6 @@
 # EduTube - Educational Platform
 
-EduTube is a React Native application that provides a focused learning environment for educational content. Built with TypeScript and Expo, the app features a modern interface designed to minimize distractions while maximizing learning engagement.
+EduTube is a cross-platform educational video app built with React Native, Expo, and Firebase. It provides a distraction-free environment for learning, featuring authentication, playlists, notes, and a modern, responsive design. The app is designed to help users engage with educational content efficiently on mobile and web.
 
 ## Current Implementation
 
@@ -121,3 +121,6 @@ Redux store with slices for:
 6. **Sign Out** - Available from Header profile dropdown
 
 All components use mock data and are ready for backend integration.
+
+## Recently Implemented:
+Video Player Implementation done
