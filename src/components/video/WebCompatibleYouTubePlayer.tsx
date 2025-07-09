@@ -1,38 +1,46 @@
-import React, { useRef } from 'react';
-import { View, StyleSheet, useWindowDimensions } from 'react-native';
-import YoutubePlayer from 'react-native-youtube-iframe';
+import React from 'react';
+import { View, StyleSheet, useWindowDimensions, Platform } from 'react-native';
+import { WebView } from 'react-native-webview';
 
 interface WebCompatibleYouTubePlayerProps {
   videoId: string;
-  maxWidth?: number; // Optional: allow parent to set a max width
+  maxWidth?: number;
 }
 
-const WebCompatibleYouTubePlayer: React.FC<WebCompatibleYouTubePlayerProps> = ({ videoId, maxWidth = 700 }) => {
-  const playerRef = useRef<any>(null);
+const WebCompatibleYouTubePlayer: React.FC<WebCompatibleYouTubePlayerProps> = ({ 
+  videoId, 
+  maxWidth = 700 
+}) => {
   const { width: windowWidth } = useWindowDimensions();
   const width = Math.min(windowWidth - 32, maxWidth); // 32 for padding/margin
   const height = width * 9 / 16;
 
+  // Create YouTube embed URL with minimal parameters
+  const embedUrl = `https://www.youtube.com/embed/${videoId}?modestbranding=1&rel=0`;
+
   return (
-    <View style={[styles.playerWrapper, { width, height }]}> 
-      <YoutubePlayer
-        ref={playerRef}
-        height={height}
-        width={width}
-        play={false}
-        videoId={videoId}
-        webViewStyle={{
-          borderRadius: 16,
-          backgroundColor: 'black',
-        }}
-        initialPlayerParams={{
-          controls: true,
-          modestbranding: true,
-          rel: false,
-          showinfo: false,
-        }}
-        forceAndroidAutoplay={false}
-      />
+    <View style={[styles.playerWrapper, { width, height }]}>
+      {Platform.OS === 'web' ? (
+        // Simple iframe for web
+        <iframe
+          title={`YouTube Video ${videoId}`}
+          width={width}
+          height={height}
+          src={embedUrl}
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          style={{ borderRadius: 16 }}
+        />
+      ) : (
+        // Simple WebView for native platforms
+        <WebView
+          source={{ uri: embedUrl }}
+          style={{ width, height }}
+          javaScriptEnabled={true}
+          allowsFullscreenVideo={true}
+        />
+      )}
     </View>
   );
 };

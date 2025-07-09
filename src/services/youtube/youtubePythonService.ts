@@ -40,7 +40,7 @@ class YouTubeService {
         return {
           success: false,
           error: {
-            type: 'SERVER_UNAVAILABLE',
+            type: 'VIDEO_UNAVAILABLE',
             message: 'Python server is not available',
             timestamp: new Date(),
             videoId: videoIdOrUrl,
@@ -48,7 +48,7 @@ class YouTubeService {
         };
       }
 
-      console.log('� Fetching video metadata from Python server...');
+      console.log('🔍 Fetching video metadata from Python server...');
       const result = await apiClient.getVideoMetadata(videoIdOrUrl);
       
       if (result.success) {
@@ -134,12 +134,6 @@ class YouTubeService {
     };
   }
 }
-
-// Export singleton instance
-export const youtubeService = new YouTubeService();
-
-// Export class for testing or custom instances
-export { YouTubeService };
 
 // Export singleton instance
 export const youtubeService = new YouTubeService();

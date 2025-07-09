@@ -29,7 +29,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { theme } from '../../styles/theme';
 import { playlistService, VideoData, PlaylistData } from '../../services/playlists/playlistService';
-import { youtubeService } from '../../services/youtube/youtubeService';
+import { youtubeService } from '../../services/youtube/youtubePythonService';
 import { extractVideoId } from '../../utils/youtubeHelpers';
 import WebCompatibleYouTubePlayer from '../../components/video/WebCompatibleYouTubePlayer';
 import { auth } from '../../services/firebase/config';
@@ -128,6 +128,18 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({ route, nav
       initializePlayer();
     }
   }, [hasError]);
+
+  // Python server status check
+  useEffect(() => {
+    const checkServerStatus = async () => {
+      const status = youtubeService.getServiceStatus();
+      if (!status.serverAvailable) {
+        console.warn('Python server is not available. Metadata features will not work.');
+      }
+    };
+    
+    checkServerStatus();
+  }, []);
 
   // Show error screen if parameters are invalid
   if (hasError) {
@@ -282,13 +294,11 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({ route, nav
       try {
         console.log('Fetching metadata from YouTube API...');
         const metadataResult = await youtubeService.getVideoMetadata(extractedVideoId);
-        console.log('Metadata result:', metadataResult);
         
         if (metadataResult.success && metadataResult.data) {
           const metadata = metadataResult.data;
-          console.log('Got metadata:', metadata);
           
-          // Update video data with real metadata
+          // Update video data with metadata
           const updatedVideoData: VideoData = {
             id: extractedVideoId,
             title: metadata.title,
@@ -300,19 +310,14 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({ route, nav
           };
           
           setVideo(updatedVideoData);
-          console.log('Updated video data set:', updatedVideoData);
-          
-          // Also update the video description state
-          setVideoDescription(metadata.description || 'No description available.');
+          setVideoDescription(metadata.description || 'No description available for this video.');
         } else {
           console.warn('Failed to fetch video metadata:', metadataResult.error);
-          // Keep the basic video data, but set a fallback description
-          setVideoDescription('Video metadata could not be loaded. This may be due to API limits or the video being private.');
+          setVideoDescription('Video metadata could not be loaded.');
         }
       } catch (apiError) {
-        console.error('Error fetching video metadata from YouTube API:', apiError);
-        // Keep the basic video data, but set a fallback description
-        setVideoDescription('Video metadata could not be loaded. Playing with basic information.');
+        console.error('Error fetching video metadata:', apiError);
+        setVideoDescription('Video metadata could not be loaded.');
       }
       
     } catch (error) {
@@ -483,7 +488,7 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({ route, nav
             };
             
             setVideo(updatedVideoData);
-            setVideoDescription(metadata.description || 'No description available.');
+            setVideoDescription(metadata.description || 'No description available for this video.');
           } else {
             setVideoDescription('Video metadata could not be loaded.');
           }
@@ -589,7 +594,6 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({ route, nav
                     key={video?.id || 'video-player'}
                     videoId={extractVideoId(video?.url || '') || video?.id || ''}
                   />
-                  {/* Minimal Play/Pause Overlay */}
                   {isLoading && (
                     <View style={styles.loadingOverlay}>
                       <ActivityIndicator size="large" color={theme.colors.blue[400]} />
@@ -668,7 +672,9 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({ route, nav
                 {showDescription && (
                   <View style={styles.descriptionContent}>
                     <ScrollView style={styles.descriptionScroll} showsVerticalScrollIndicator={false}>
-                      <Text style={styles.descriptionText}>{videoDescription}</Text>
+                      <Text style={styles.descriptionText}>
+                        {videoDescription || 'No description available for this video.'}
+                      </Text>
                     </ScrollView>
                   </View>
                 )}
@@ -985,6 +991,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.slate[300],
     lineHeight: 20,
+  },
+  apiSourceText: {
+    fontSize: 10,
+    color: theme.colors.blue[400],
+    marginBottom: 8,
+    fontStyle: 'italic',
   },
   playlistColumn: {
     flex: 1,

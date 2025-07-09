@@ -101,6 +101,8 @@ export type VideoError =
   | 'PARSING_ERROR'
   | 'TRANSCRIPT_UNAVAILABLE'
   | 'API_KEY_ERROR'
+  | 'API_CONNECTION_ERROR'
+  | 'SERVER_ERROR'
   | 'UNKNOWN_ERROR';
 
 export interface VideoErrorState {

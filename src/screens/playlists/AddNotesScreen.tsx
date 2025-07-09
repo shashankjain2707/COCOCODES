@@ -9,50 +9,70 @@ import {
   SafeAreaView,
   StatusBar,
   ScrollView,
+  ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../styles/theme';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { playlistService, NoteLinkData } from '../../services/playlists/playlistService';
+import { notesService } from '../../services/notes/notesService';
+import { NoteType } from '../../types/notes';
 
 interface NoteLink {
   id: string;
   url: string;
   title: string;
   description: string;
-  type: 'notion' | 'google-docs' | 'github' | 'other';
+  notes: string;
+  type: 'note' | 'resource' | 'bookmark';
+}
+
+// Route params for the screen
+interface RouteParams {
+  videoId?: string;
+  playlistId?: string;
 }
 
 export const AddNotesScreen: React.FC = () => {
   const navigation = useNavigation();
+  const route = useRoute();
+  const { videoId, playlistId } = (route.params as RouteParams) || {};
+  
   const [noteLinks, setNoteLinks] = useState<NoteLink[]>([]);
   const [currentLink, setCurrentLink] = useState('');
   const [currentTitle, setCurrentTitle] = useState('');
   const [currentDescription, setCurrentDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  // AI Notes state
+  const [aiNotesModalVisible, setAiNotesModalVisible] = useState(false);
+  const [selectedNoteType, setSelectedNoteType] = useState<NoteType>('comprehensive');
+  const [aiNotesLoading, setAiNotesLoading] = useState(false);
+  const [aiNotesContent, setAiNotesContent] = useState('');
 
-  const detectNoteType = (url: string): 'notion' | 'google-docs' | 'github' | 'other' => {
-    if (url.includes('notion.so') || url.includes('notion.site')) return 'notion';
-    if (url.includes('docs.google.com')) return 'google-docs';
-    if (url.includes('github.com')) return 'github';
-    return 'other';
+  const detectNoteType = (url: string): 'note' | 'resource' | 'bookmark' => {
+    if (url.includes('notion.so') || url.includes('notion.site')) return 'note';
+    if (url.includes('docs.google.com')) return 'note';
+    if (url.includes('github.com')) return 'resource';
+    return 'bookmark';
   };
 
   const getTypeIcon = (type: string): string => {
     switch (type) {
-      case 'notion': return 'file-document-outline';
-      case 'google-docs': return 'google-drive';
-      case 'github': return 'github';
+      case 'note': return 'file-document-outline';
+      case 'resource': return 'file-document-outline';
+      case 'bookmark': return 'link';
       default: return 'link';
     }
   };
 
   const getTypeColor = (type: string): string => {
     switch (type) {
-      case 'notion': return theme.colors.slate[400];
-      case 'google-docs': return theme.colors.blue[400];
-      case 'github': return theme.colors.slate[300];
+      case 'note': return theme.colors.slate[400];
+      case 'resource': return theme.colors.blue[400];
+      case 'bookmark': return theme.colors.slate[300];
       default: return theme.colors.slate[400];
     }
   };
@@ -95,6 +115,7 @@ export const AddNotesScreen: React.FC = () => {
         url: currentLink,
         title: currentTitle,
         description: currentDescription,
+        notes: aiNotesContent || '', // Add the notes field
         type: detectNoteType(currentLink),
       };
 
@@ -102,6 +123,7 @@ export const AddNotesScreen: React.FC = () => {
       setCurrentLink('');
       setCurrentTitle('');
       setCurrentDescription('');
+      setAiNotesContent(''); // Reset AI notes content
     } catch (error) {
       Alert.alert('Error', 'Failed to add note link');
     } finally {
@@ -127,6 +149,8 @@ export const AddNotesScreen: React.FC = () => {
         title: note.title,
         description: note.description,
         type: note.type,
+        notes: note.notes, // Use the notes from each note link
+        updatedAt: new Date().toISOString(),
       }));
 
       await playlistService.saveNoteLinks(notes);
@@ -141,6 +165,33 @@ export const AddNotesScreen: React.FC = () => {
       Alert.alert('Error', 'Failed to save notes. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Function to generate AI notes
+  const generateAiNotes = async () => {
+    if (!videoId) {
+      Alert.alert('Error', 'No video ID provided. AI notes can only be generated for a specific video.');
+      return;
+    }
+
+    setAiNotesLoading(true);
+    try {
+      const response = await notesService.generateNotes(videoId, selectedNoteType);
+      
+      if (response.success && response.data) {
+        setAiNotesContent(response.data.notes);
+        setCurrentTitle(`AI ${selectedNoteType.replace('_', ' ')} notes`);
+        setCurrentDescription(`Automatically generated ${selectedNoteType.replace('_', ' ')} notes for this video`);
+      } else {
+        Alert.alert('Error', response.error?.message || 'Failed to generate AI notes');
+      }
+    } catch (error) {
+      console.error('Error generating AI notes:', error);
+      Alert.alert('Error', 'Failed to generate AI notes. Please try again.');
+    } finally {
+      setAiNotesLoading(false);
+      setAiNotesModalVisible(false);
     }
   };
 
@@ -218,6 +269,30 @@ export const AddNotesScreen: React.FC = () => {
               />
             </View>
 
+            {/* AI Notes Button - Only show when a videoId is available */}
+            {videoId && (
+              <View style={styles.aiNotesContainer}>
+                <TouchableOpacity 
+                  onPress={() => setAiNotesModalVisible(true)} 
+                  style={styles.aiNotesButton}
+                  disabled={aiNotesLoading}
+                >
+                  <MaterialCommunityIcons 
+                    name="robot-outline" 
+                    size={20} 
+                    color={theme.colors.white} 
+                    style={styles.buttonIcon}
+                  />
+                  <Text style={styles.buttonText}>
+                    {aiNotesLoading ? 'Generating AI Notes...' : 'Generate AI Notes'}
+                  </Text>
+                </TouchableOpacity>
+                <Text style={styles.aiNotesHint}>
+                  Use AI to automatically generate notes from the video transcript
+                </Text>
+              </View>
+            )}
+
             <TouchableOpacity 
               onPress={addNoteLink} 
               style={[styles.addButton, isLoading && styles.disabledButton]}
@@ -264,6 +339,30 @@ export const AddNotesScreen: React.FC = () => {
             </View>
           )}
 
+          {/* AI Notes Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>AI Generated Notes</Text>
+            <TouchableOpacity 
+              onPress={generateAiNotes} 
+              style={[styles.generateButton, aiNotesLoading && styles.disabledButton]}
+              disabled={aiNotesLoading}
+            >
+              <MaterialCommunityIcons 
+                name={aiNotesLoading ? "loading" : "robot"} 
+                size={20} 
+                color={theme.colors.white} 
+                style={styles.buttonIcon}
+              />
+              <Text style={styles.buttonText}>{aiNotesLoading ? 'Generating...' : 'Generate AI Notes'}</Text>
+            </TouchableOpacity>
+
+            {aiNotesContent.length > 0 && (
+              <View style={styles.aiNotesContainer}>
+                <Text style={styles.aiNoteText}>{aiNotesContent}</Text>
+              </View>
+            )}
+          </View>
+
           {/* Supported Platforms */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Supported Platforms</Text>
@@ -288,6 +387,118 @@ export const AddNotesScreen: React.FC = () => {
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      {/* AI Notes Type Selection Modal */}
+      <Modal
+        visible={aiNotesModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setAiNotesModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Generate AI Notes</Text>
+              <TouchableOpacity onPress={() => setAiNotesModalVisible(false)}>
+                <MaterialCommunityIcons name="close" size={24} color={theme.colors.white} />
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={styles.modalDescription}>
+              Select the type of notes you want to generate from the video transcript:
+            </Text>
+            
+            <TouchableOpacity 
+              style={[styles.noteTypeButton, selectedNoteType === 'comprehensive' && styles.selectedNoteType]} 
+              onPress={() => setSelectedNoteType('comprehensive')}
+            >
+              <MaterialCommunityIcons 
+                name="notebook-outline" 
+                size={24} 
+                color={selectedNoteType === 'comprehensive' ? theme.colors.blue[400] : theme.colors.slate[300]} 
+              />
+              <View style={styles.noteTypeInfo}>
+                <Text style={styles.noteTypeName}>Comprehensive Notes</Text>
+                <Text style={styles.noteTypeDescription}>
+                  Detailed notes with all important concepts and examples
+                </Text>
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.noteTypeButton, selectedNoteType === 'summary' && styles.selectedNoteType]} 
+              onPress={() => setSelectedNoteType('summary')}
+            >
+              <MaterialCommunityIcons 
+                name="text-box-outline" 
+                size={24} 
+                color={selectedNoteType === 'summary' ? theme.colors.blue[400] : theme.colors.slate[300]} 
+              />
+              <View style={styles.noteTypeInfo}>
+                <Text style={styles.noteTypeName}>Summary</Text>
+                <Text style={styles.noteTypeDescription}>
+                  Brief overview of main ideas and conclusions
+                </Text>
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.noteTypeButton, selectedNoteType === 'key_points' && styles.selectedNoteType]} 
+              onPress={() => setSelectedNoteType('key_points')}
+            >
+              <MaterialCommunityIcons 
+                name="format-list-bulleted" 
+                size={24} 
+                color={selectedNoteType === 'key_points' ? theme.colors.blue[400] : theme.colors.slate[300]} 
+              />
+              <View style={styles.noteTypeInfo}>
+                <Text style={styles.noteTypeName}>Key Points</Text>
+                <Text style={styles.noteTypeDescription}>
+                  List of essential facts, definitions, and concepts
+                </Text>
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.noteTypeButton, selectedNoteType === 'study_guide' && styles.selectedNoteType]} 
+              onPress={() => setSelectedNoteType('study_guide')}
+            >
+              <MaterialCommunityIcons 
+                name="bookshelf" 
+                size={24} 
+                color={selectedNoteType === 'study_guide' ? theme.colors.blue[400] : theme.colors.slate[300]} 
+              />
+              <View style={styles.noteTypeInfo}>
+                <Text style={styles.noteTypeName}>Study Guide</Text>
+                <Text style={styles.noteTypeDescription}>
+                  Learning resource with concepts, facts, and sample questions
+                </Text>
+              </View>
+            </TouchableOpacity>
+            
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={styles.cancelButton} 
+                onPress={() => setAiNotesModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.generateButton} 
+                onPress={generateAiNotes}
+                disabled={aiNotesLoading}
+              >
+                {aiNotesLoading ? (
+                  <ActivityIndicator size="small" color={theme.colors.white} />
+                ) : (
+                  <Text style={styles.generateButtonText}>Generate</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -459,5 +670,121 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 8,
     textAlign: 'center',
+  },
+  aiNotesContainer: {
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  aiNoteItem: {
+    marginBottom: 8,
+  },
+  aiNoteText: {
+    color: theme.colors.white,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  generateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.blue[500],
+    borderRadius: 8,
+    paddingVertical: 12,
+  },
+  aiNotesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.blue[700],
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  aiNotesHint: {
+    fontSize: 12,
+    color: theme.colors.slate[400],
+    textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: theme.colors.slate[800],
+    borderRadius: 12,
+    padding: 20,
+    width: '100%',
+    maxWidth: 500,
+    borderWidth: 1,
+    borderColor: theme.colors.slate[700],
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: theme.colors.white,
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: theme.colors.slate[300],
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  noteTypeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    backgroundColor: theme.colors.slate[700],
+    borderWidth: 1,
+    borderColor: theme.colors.slate[600],
+  },
+  selectedNoteType: {
+    backgroundColor: theme.colors.slate[700],
+    borderColor: theme.colors.blue[500],
+  },
+  noteTypeInfo: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  noteTypeName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: theme.colors.white,
+    marginBottom: 4,
+  },
+  noteTypeDescription: {
+    fontSize: 12,
+    color: theme.colors.slate[300],
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 20,
+  },
+  cancelButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: theme.colors.slate[600],
+  },
+  cancelButtonText: {
+    color: theme.colors.white,
+    fontWeight: 'bold',
+  },
+  generateButtonText: {
+    color: theme.colors.white,
+    fontWeight: 'bold',
   },
 });
