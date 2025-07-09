@@ -1,4 +1,19 @@
-import { auth, firestore, Timestamp } from '../firebase/config';
+import { 
+  auth, 
+  firestore, 
+  Timestamp, 
+  collection, 
+  doc, 
+  addDoc, 
+  getDoc, 
+  getDocs, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  where, 
+  orderBy, 
+  setDoc 
+} from '../firebase/config';
 
 export interface VideoData {
   id: string;
@@ -29,18 +44,29 @@ export interface PlaylistData {
   updatedAt: any;
   isPublic: boolean;
   tags: string[];
-  thumbnail?: string;
 }
 
 export interface NoteData {
-  id: string;
-  url: string;
-  title: string;
-  description: string;
-  type: 'notion' | 'google-docs' | 'github' | 'other';
-  createdAt: any;
+  id?: string;
+  playlistId: string;
+  videoId: string;
+  timestamp: number;
+  content: string;
   createdBy: string;
-  playlistId?: string;
+  createdAt: any;
+  updatedAt: any;
+}
+
+export interface NoteLinkData {
+  id?: string;
+  title: string;
+  url: string;
+  notes: string;
+  type?: 'note' | 'resource' | 'bookmark';
+  description?: string;
+  createdBy: string;
+  createdAt: any;
+  updatedAt: any;
 }
 
 export const playlistService = {
@@ -48,23 +74,23 @@ export const playlistService = {
    * Create a new playlist
    */
   async createPlaylist(playlistData: Omit<PlaylistData, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>): Promise<string> {
-    const currentUser = auth().currentUser;
+    const currentUser = auth.currentUser;
     if (!currentUser) {
       throw new Error('User must be authenticated to create playlists');
     }
 
     const now = Timestamp.now();
-    const docRef = firestore().collection('playlists').doc();
+    const playlistsRef = collection(firestore, 'playlists');
     
     const playlist: PlaylistData = {
-      id: docRef.id,
       ...playlistData,
       createdBy: currentUser.uid,
       createdAt: now,
       updatedAt: now,
     };
 
-    await docRef.set(playlist);
+    const docRef = await addDoc(playlistsRef, playlist);
+    console.log('Created playlist with ID:', docRef.id);
     return docRef.id;
   },
 
@@ -72,79 +98,116 @@ export const playlistService = {
    * Get all playlists for the current user
    */
   async getUserPlaylists(): Promise<PlaylistData[]> {
-    const currentUser = auth().currentUser;
+    const currentUser = auth.currentUser;
     if (!currentUser) {
       throw new Error('User must be authenticated to get playlists');
     }
 
-    const snapshot = await firestore()
-      .collection('playlists')
-      .where('createdBy', '==', currentUser.uid)
-      .orderBy('updatedAt', 'desc')
-      .get();
+    const playlistsRef = collection(firestore, 'playlists');
+    const q = query(
+      playlistsRef,
+      where('createdBy', '==', currentUser.uid),
+      orderBy('updatedAt', 'desc')
+    );
+    
+    const snapshot = await getDocs(q);
 
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as PlaylistData));
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      const playlist = {
+        id: doc.id,
+        ...data
+      } as PlaylistData;
+      
+      console.log('Playlist from Firestore:', playlist.id, playlist.name);
+      return playlist;
+    });
   },
 
   /**
    * Get a single playlist by ID
    */
   async getPlaylistById(playlistId: string): Promise<PlaylistData | null> {
-    const doc = await firestore().collection('playlists').doc(playlistId).get();
+    console.log('getPlaylistById called with:', playlistId);
+    console.log('playlistId type:', typeof playlistId);
+    console.log('playlistId length:', playlistId?.length);
     
-    if (!doc.exists) {
-      return null;
+    if (!playlistId || typeof playlistId !== 'string') {
+      console.error('Invalid playlist ID provided:', playlistId);
+      throw new Error(`Invalid playlist ID provided: ${playlistId}`);
     }
+    
+    if (playlistId === 'playlists') {
+      console.error('Received collection name instead of document ID');
+      throw new Error('Invalid playlist ID: received collection name instead of document ID');
+    }
+    
+    if (playlistId.includes('/') || playlistId.includes(' ') || playlistId.trim() === '') {
+      console.error('Invalid playlist ID format:', playlistId);
+      throw new Error(`Invalid playlist ID format: ${playlistId}`);
+    }
+    
+    try {
+      const docRef = doc(firestore, 'playlists', playlistId);
+      const docSnap = await getDoc(docRef);
+      
+      if (!docSnap.exists()) {
+        console.log('Playlist not found:', playlistId);
+        return null;
+      }
 
-    return {
-      id: doc.id,
-      ...doc.data()
-    } as PlaylistData;
+      const data = docSnap.data();
+      const playlist = {
+        id: docSnap.id,
+        ...data
+      } as PlaylistData;
+      
+      console.log('Successfully loaded playlist:', playlist.id, playlist.name);
+      return playlist;
+    } catch (error) {
+      console.error('Firebase error in getPlaylistById:', error);
+      throw error;
+    }
   },
 
   /**
-   * Update a playlist
+   * Update an existing playlist
    */
   async updatePlaylist(playlistId: string, updates: Partial<PlaylistData>): Promise<void> {
-    const currentUser = auth().currentUser;
+    const currentUser = auth.currentUser;
     if (!currentUser) {
       throw new Error('User must be authenticated to update playlists');
     }
 
-    await firestore().collection('playlists').doc(playlistId).update({
+    const docRef = doc(firestore, 'playlists', playlistId);
+    const updateData = {
       ...updates,
       updatedAt: Timestamp.now(),
-    });
+    };
+
+    await updateDoc(docRef, updateData);
   },
 
   /**
    * Delete a playlist
    */
   async deletePlaylist(playlistId: string): Promise<void> {
-    const currentUser = auth().currentUser;
+    const currentUser = auth.currentUser;
     if (!currentUser) {
       throw new Error('User must be authenticated to delete playlists');
     }
 
-    // Check if user owns the playlist
-    const playlist = await this.getPlaylistById(playlistId);
-    if (!playlist || playlist.createdBy !== currentUser.uid) {
-      throw new Error('You can only delete your own playlists');
-    }
-
-    await firestore().collection('playlists').doc(playlistId).delete();
+    const docRef = doc(firestore, 'playlists', playlistId);
+    await deleteDoc(docRef);
   },
 
   /**
    * Add a video to a playlist
    */
   async addVideoToPlaylist(playlistId: string, videoData: Omit<VideoData, 'addedAt'>): Promise<void> {
-    const currentUser = auth().currentUser;
+    const currentUser = auth.currentUser;
     if (!currentUser) {
-      throw new Error('User must be authenticated to modify playlists');
+      throw new Error('User must be authenticated to add videos');
     }
 
     const playlist = await this.getPlaylistById(playlistId);
@@ -153,7 +216,7 @@ export const playlistService = {
     }
 
     if (playlist.createdBy !== currentUser.uid) {
-      throw new Error('You can only modify your own playlists');
+      throw new Error('You can only add videos to your own playlists');
     }
 
     const video: VideoData = {
@@ -169,9 +232,9 @@ export const playlistService = {
    * Remove a video from a playlist
    */
   async removeVideoFromPlaylist(playlistId: string, videoId: string): Promise<void> {
-    const currentUser = auth().currentUser;
+    const currentUser = auth.currentUser;
     if (!currentUser) {
-      throw new Error('User must be authenticated to modify playlists');
+      throw new Error('User must be authenticated to remove videos');
     }
 
     const playlist = await this.getPlaylistById(playlistId);
@@ -180,7 +243,7 @@ export const playlistService = {
     }
 
     if (playlist.createdBy !== currentUser.uid) {
-      throw new Error('You can only modify your own playlists');
+      throw new Error('You can only remove videos from your own playlists');
     }
 
     const updatedVideos = playlist.videos.filter(video => video.id !== videoId);
@@ -188,44 +251,70 @@ export const playlistService = {
   },
 
   /**
-   * Save note links
+   * Save multiple note links using batch writes
    */
-  async saveNoteLinks(notes: Omit<NoteData, 'createdAt' | 'createdBy'>[]): Promise<void> {
-    const currentUser = auth().currentUser;
+  async saveNoteLinks(notes: Omit<NoteLinkData, 'createdAt' | 'createdBy'>[]): Promise<void> {
+    const currentUser = auth.currentUser;
     if (!currentUser) {
       throw new Error('User must be authenticated to save notes');
     }
 
-    const batch = firestore().batch();
-    const now = Timestamp.now();
-
-    notes.forEach(note => {
-      const docRef = firestore().collection('notes').doc();
-      const noteData: NoteData = {
+    // For now, save notes one by one since we don't have batch implemented yet
+    // TODO: Implement batch writes for better performance
+    for (const note of notes) {
+      const noteData: NoteLinkData = {
         ...note,
-        createdAt: now,
         createdBy: currentUser.uid,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
       };
-      batch.set(docRef, noteData);
-    });
+      
+      const notesRef = collection(firestore, 'noteLinks');
+      await addDoc(notesRef, noteData);
+    }
+  },
 
-    await batch.commit();
+  /**
+   * Get all note links for the current user
+   */
+  async getUserNoteLinks(): Promise<NoteLinkData[]> {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error('User must be authenticated to get note links');
+    }
+
+    const notesRef = collection(firestore, 'noteLinks');
+    const q = query(
+      notesRef,
+      where('createdBy', '==', currentUser.uid),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const snapshot = await getDocs(q);
+
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    } as NoteLinkData));
   },
 
   /**
    * Get all notes for the current user
    */
   async getUserNotes(): Promise<NoteData[]> {
-    const currentUser = auth().currentUser;
+    const currentUser = auth.currentUser;
     if (!currentUser) {
       throw new Error('User must be authenticated to get notes');
     }
 
-    const snapshot = await firestore()
-      .collection('notes')
-      .where('createdBy', '==', currentUser.uid)
-      .orderBy('createdAt', 'desc')
-      .get();
+    const notesRef = collection(firestore, 'notes');
+    const q = query(
+      notesRef,
+      where('createdBy', '==', currentUser.uid),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const snapshot = await getDocs(q);
 
     return snapshot.docs.map(doc => ({
       id: doc.id,
@@ -234,55 +323,35 @@ export const playlistService = {
   },
 
   /**
-   * Extract YouTube video ID from URL
+   * Get notes for a specific playlist
    */
-  extractVideoId(url: string): string | null {
-    const regexes = [
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-      /youtube\.com\/watch\?.*v=([^&\n?#]+)/,
-    ];
-    
-    for (const regex of regexes) {
-      const match = url.match(regex);
-      if (match) return match[1];
+  async getPlaylistNotes(playlistId: string): Promise<NoteData[]> {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error('User must be authenticated to get notes');
     }
-    return null;
-  },
 
-  /**
-   * Extract YouTube playlist ID from URL
-   */
-  extractPlaylistId(url: string): string | null {
-    const match = url.match(/[?&]list=([^&]+)/);
-    return match ? match[1] : null;
-  },
+    const notesRef = collection(firestore, 'notes');
+    const q = query(
+      notesRef,
+      where('playlistId', '==', playlistId),
+      where('createdBy', '==', currentUser.uid),
+      orderBy('timestamp', 'asc')
+    );
+    
+    const snapshot = await getDocs(q);
 
-  /**
-   * Validate YouTube video URL
-   */
-  validateYouTubeUrl(url: string): boolean {
-    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
-    return youtubeRegex.test(url);
-  },
-
-  /**
-   * Validate YouTube playlist URL
-   */
-  validateYouTubePlaylistUrl(url: string): boolean {
-    const playlistRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/playlist\?list=|youtube\.com\/watch\?.*list=)/;
-    return playlistRegex.test(url);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    } as NoteData));
   },
 
   /**
    * Update video progress
    */
-  async updateVideoProgress(
-    playlistId: string,
-    videoId: string,
-    watchedSeconds: number,
-    totalSeconds: number
-  ): Promise<void> {
-    const currentUser = auth().currentUser;
+  async updateVideoProgress(playlistId: string, videoId: string, watchedSeconds: number, totalSeconds: number): Promise<void> {
+    const currentUser = auth.currentUser;
     if (!currentUser) {
       throw new Error('User must be authenticated to update progress');
     }
@@ -318,7 +387,7 @@ export const playlistService = {
    * Mark video as completed
    */
   async markVideoAsCompleted(playlistId: string, videoId: string): Promise<void> {
-    const currentUser = auth().currentUser;
+    const currentUser = auth.currentUser;
     if (!currentUser) {
       throw new Error('User must be authenticated to mark videos as completed');
     }
@@ -381,4 +450,45 @@ export const playlistService = {
     if (!video.progress || !video.progress.totalSeconds) return 0;
     return Math.min((video.progress.watchedSeconds / video.progress.totalSeconds) * 100, 100);
   },
+
+  /**
+   * Validate YouTube URL
+   */
+  validateYouTubeUrl(url: string): boolean {
+    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
+    return youtubeRegex.test(url);
+  },
+
+  /**
+   * Extract video ID from YouTube URL
+   */
+  extractVideoId(url: string): string | null {
+    const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+    return match ? match[1] : null;
+  },
+
+  /**
+   * Validate YouTube playlist URL
+   */
+  validateYouTubePlaylistUrl(url: string): boolean {
+    const playlistRegex = /^(https?:\/\/)?(www\.)?youtube\.com\/playlist\?list=.+/;
+    return playlistRegex.test(url);
+  },
+
+  /**
+   * Extract playlist ID from YouTube URL
+   */
+  extractPlaylistId(url: string): string | null {
+    const match = url.match(/[?&]list=([^&]+)/);
+    return match ? match[1] : null;
+  },
+
+  /**
+   * Check authentication status
+   */
+  async checkAuthStatus(): Promise<boolean> {
+    return auth.currentUser !== null;
+  },
 };
+
+export default playlistService;

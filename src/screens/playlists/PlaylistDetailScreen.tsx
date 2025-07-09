@@ -27,7 +27,44 @@ interface PlaylistDetailRouteParams {
 export const PlaylistDetailScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { playlistId, title } = route.params as PlaylistDetailRouteParams;
+  const params = route.params as PlaylistDetailRouteParams;
+  
+  // Enhanced safety check for invalid parameters
+  if (!params || !params.playlistId || typeof params.playlistId !== 'string' || params.playlistId.trim() === '' || params.playlistId === 'playlists') {
+    console.error('Invalid route parameters detected:', params);
+    console.error('playlistId value:', params?.playlistId);
+    console.error('playlistId type:', typeof params?.playlistId);
+    
+    React.useEffect(() => {
+      Alert.alert(
+        'Invalid Playlist',
+        'This playlist cannot be loaded. Returning to library.',
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
+    }, [navigation]);
+    
+    return (
+      <View style={styles.container}>
+        <LinearGradient
+          colors={[theme.colors.slate[950], theme.colors.blue[950], theme.colors.navy[900]]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.backgroundGradient}
+        />
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.errorContainer}>
+            <MaterialCommunityIcons name="alert-circle" size={48} color={theme.colors.error} />
+            <Text style={styles.errorText}>Invalid playlist parameters</Text>
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+              <Text style={styles.backButtonText}>Go Back</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
+  
+  const { playlistId, title } = params;
 
   const [playlist, setPlaylist] = useState<PlaylistData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,11 +77,45 @@ export const PlaylistDetailScreen: React.FC = () => {
 
   const loadPlaylist = async () => {
     try {
+      console.log('Loading playlist with ID:', playlistId);
+      console.log('Playlist ID type:', typeof playlistId);
+      console.log('Playlist ID value:', JSON.stringify(playlistId));
+      
+      // Additional validation before Firebase call
+      if (!playlistId || typeof playlistId !== 'string' || playlistId.trim() === '') {
+        throw new Error(`Invalid playlist ID: ${playlistId}`);
+      }
+      
+      if (playlistId === 'playlists' || playlistId.includes('/')) {
+        throw new Error(`Invalid playlist ID format: ${playlistId}`);
+      }
+      
       const playlistData = await playlistService.getPlaylistById(playlistId);
+      
+      if (!playlistData) {
+        throw new Error('Playlist not found');
+      }
+      
       setPlaylist(playlistData);
     } catch (error) {
       console.error('Error loading playlist:', error);
-      Alert.alert('Error', 'Failed to load playlist');
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      
+      console.error('Error details:', {
+        message: errorMessage,
+        playlistId: playlistId,
+        playlistIdType: typeof playlistId,
+        stack: errorStack
+      });
+      
+      // Show user-friendly error and go back
+      Alert.alert(
+        'Error Loading Playlist', 
+        'This playlist could not be loaded. Please try again later.',
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
     } finally {
       setIsLoading(false);
     }

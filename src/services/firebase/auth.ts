@@ -1,4 +1,20 @@
-import { auth, firestore, GoogleAuthProvider, Timestamp } from './config';
+import { 
+  auth, 
+  firestore, 
+  GoogleAuthProvider, 
+  Timestamp, 
+  onAuthStateChanged, 
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  signInWithCredential,
+  signInWithPopup,
+  collection, 
+  doc, 
+  getDoc, 
+  setDoc, 
+  updateDoc 
+} from './config';
 import { Platform } from 'react-native';
 
 // Define the type for FirebaseUser based on platform
@@ -27,18 +43,18 @@ export interface UserData {
 export const authService = {
   // Initialize auth state listener
   onAuthStateChange(callback: (user: FirebaseUser | null) => void) {
-    return auth().onAuthStateChanged(callback);
+    return onAuthStateChanged(callback);
   },
 
   // Get current user
   getCurrentUser(): FirebaseUser | null {
-    return auth().currentUser;
+    return auth.currentUser;
   },
 
   // Wait for auth to be ready
   waitForAuth(): Promise<FirebaseUser | null> {
     return new Promise((resolve) => {
-      const unsubscribe = auth().onAuthStateChanged((user) => {
+      const unsubscribe = onAuthStateChanged((user) => {
         unsubscribe();
         resolve(user);
       });
@@ -48,67 +64,91 @@ export const authService = {
   // Sign in with Google
   async signInWithGoogle(): Promise<FirebaseUser> {
     try {
-      // Setup Google Sign-In for React Native
-      const { GoogleSignin } = require('@react-native-google-signin/google-signin');
-      
-      // Configure Google Sign-In
-      GoogleSignin.configure({
-        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-      });
-      
-      // Get the user ID token
-      await GoogleSignin.hasPlayServices();
-      const { idToken } = await GoogleSignin.signIn();
-      
-      // Create a Google credential with the token
-      const googleCredential = GoogleAuthProvider.credential(idToken);
-      
-      // Sign-in with credential
-      const userCredential = await auth().signInWithCredential(googleCredential);
-      const user = userCredential.user;
-      
-      // Create or update user document in Firestore
-      const userDoc = await firestore().collection('users').doc(user.uid).get();
-      
-      if (!userDoc.exists()) {
-        const userData: UserData = {
-          uid: user.uid,
-          email: user.email!,
-          displayName: user.displayName || 'User',
-          photoURL: user.photoURL || undefined,
-          createdAt: Timestamp.now(),
-          lastLoginAt: Timestamp.now(),
-          studyPreferences: {
-            dailyGoalMinutes: 60,
-            preferredSubjects: [],
-            difficulty: 'beginner',
-          },
-          stats: {
-            totalStudyMinutes: 0,
-            coursesCompleted: 0,
-            currentStreak: 0,
-            longestStreak: 0,
-          },
-        };
+      if (Platform.OS === 'web') {
+        // Web platform - use Firebase Auth web SDK
+        const { signInWithPopup } = require('firebase/auth');
+        const provider = new GoogleAuthProvider();
         
-        await firestore().collection('users').doc(user.uid).set(userData);
+        // Add any additional scopes if needed
+        provider.addScope('profile');
+        provider.addScope('email');
+        
+        const result = await signInWithPopup(provider);
+        const user = result.user;
+        
+        // Create or update user document in Firestore
+        await this.createOrUpdateUserDoc(user);
+        
+        return user;
       } else {
-        // Update last login time
-        await firestore().collection('users').doc(user.uid).update({
-          lastLoginAt: Timestamp.now(),
+        // React Native platform - use Google Sign-In library
+        const { GoogleSignin } = require('@react-native-google-signin/google-signin');
+        
+        // Configure Google Sign-In
+        GoogleSignin.configure({
+          webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
         });
+        
+        // Get the user ID token
+        await GoogleSignin.hasPlayServices();
+        const { idToken } = await GoogleSignin.signIn();
+        
+        // Create a Google credential with the token
+        const googleCredential = GoogleAuthProvider.credential(idToken);
+        
+        // Sign-in with credential
+        const userCredential = await signInWithCredential(googleCredential);
+        const user = userCredential.user;
+        
+        // Create or update user document in Firestore
+        await this.createOrUpdateUserDoc(user);
+        
+        return user;
       }
-      
-      return user;
     } catch (error) {
       console.error('Google sign in error:', error);
       throw error;
     }
   },
 
+  // Helper method to create or update user document
+  async createOrUpdateUserDoc(user: any): Promise<void> {
+    const userDocRef = doc(firestore, 'users', user.uid);
+    const userDoc = await getDoc(userDocRef);
+    
+    if (!userDoc.exists()) {
+      const userData: UserData = {
+        uid: user.uid,
+        email: user.email!,
+        displayName: user.displayName || 'User',
+        photoURL: user.photoURL || undefined,
+        createdAt: Timestamp.now(),
+        lastLoginAt: Timestamp.now(),
+        studyPreferences: {
+          dailyGoalMinutes: 60,
+          preferredSubjects: [],
+          difficulty: 'beginner',
+        },
+        stats: {
+          totalStudyMinutes: 0,
+          coursesCompleted: 0,
+          currentStreak: 0,
+          longestStreak: 0,
+        },
+      };
+      
+      await setDoc(userDocRef, userData);
+    } else {
+      // Update last login time
+      await updateDoc(userDocRef, {
+        lastLoginAt: Timestamp.now(),
+      });
+    }
+  },
+
   // Sign up with email and password
   async signUp(email: string, password: string, displayName: string): Promise<FirebaseUser> {
-    const userCredential = await auth().createUserWithEmailAndPassword(email, password);
+    const userCredential = await createUserWithEmailAndPassword(email, password);
     const user = userCredential.user;
     
     // Update user profile
@@ -134,16 +174,18 @@ export const authService = {
       },
     };
     
-    await firestore().collection('users').doc(user.uid).set(userData);
+    const userDocRef = doc(firestore, 'users', user.uid);
+    await setDoc(userDocRef, userData);
     return user;
   },
 
   // Sign in with email and password
   async signIn(email: string, password: string): Promise<FirebaseUser> {
-    const userCredential = await auth().signInWithEmailAndPassword(email, password);
+    const userCredential = await signInWithEmailAndPassword(email, password);
     
     // Update last login time
-    await firestore().collection('users').doc(userCredential.user.uid).update({
+    const userDocRef = doc(firestore, 'users', userCredential.user.uid);
+    await updateDoc(userDocRef, {
       lastLoginAt: Timestamp.now(),
     });
     
@@ -152,7 +194,7 @@ export const authService = {
 
   // Sign out
   async signOut(): Promise<void> {
-    await auth().signOut();
+    await firebaseSignOut();
   },
 
   // Get user data from Firestore

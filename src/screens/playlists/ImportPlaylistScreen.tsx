@@ -47,6 +47,14 @@ export const ImportPlaylistScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
+      // Check authentication status
+      console.log('Checking authentication...');
+      const isAuthenticated = await playlistService.checkAuthStatus();
+      if (!isAuthenticated) {
+        Alert.alert('Error', 'Please sign in to import playlists');
+        return;
+      }
+      
       // TODO: Fetch playlist data from YouTube API
       // For now, create a placeholder playlist
       const playlistData = {
@@ -58,6 +66,7 @@ export const ImportPlaylistScreen: React.FC = () => {
         tags: ['imported', 'youtube'],
       };
 
+      console.log('Creating playlist with data:', playlistData);
       await playlistService.createPlaylist(playlistData);
       Alert.alert('Success', 'Playlist imported successfully!', [
         {
@@ -65,9 +74,17 @@ export const ImportPlaylistScreen: React.FC = () => {
           onPress: () => navigation.goBack(),
         },
       ]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error importing playlist:', error);
-      Alert.alert('Error', 'Failed to import playlist. Please try again.');
+      
+      // More specific error handling
+      if (error.code === 'permission-denied') {
+        Alert.alert('Permission Error', 'You don\'t have permission to create playlists. Please check your authentication.');
+      } else if (error.code === 'unauthenticated') {
+        Alert.alert('Authentication Error', 'Please sign in to import playlists.');
+      } else {
+        Alert.alert('Error', `Failed to import playlist: ${error.message || 'Unknown error'}`);
+      }
     } finally {
       setIsLoading(false);
     }

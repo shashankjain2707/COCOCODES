@@ -9,8 +9,10 @@ export interface VideoMetadata {
   thumbnailUrl: string;
   uploadDate: Date;
   viewCount?: number;
+  likeCount?: number;
   description?: string;
   tags?: string[];
+  categoryId?: string;
 }
 
 export interface PlaylistData {
@@ -98,6 +100,7 @@ export type VideoError =
   | 'NETWORK_ERROR'
   | 'PARSING_ERROR'
   | 'TRANSCRIPT_UNAVAILABLE'
+  | 'API_KEY_ERROR'
   | 'UNKNOWN_ERROR';
 
 export interface VideoErrorState {

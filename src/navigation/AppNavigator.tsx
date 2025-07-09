@@ -7,7 +7,8 @@ import { CreatePlaylistScreen } from '../screens/playlists/CreatePlaylistScreen'
 import { ImportPlaylistScreen } from '../screens/playlists/ImportPlaylistScreen';
 import { AddNotesScreen } from '../screens/playlists/AddNotesScreen';
 import { PlaylistDetailScreen } from '../screens/playlists/PlaylistDetailScreen';
-import { SimpleVideoPlayerScreen } from '../screens/player/SimpleVideoPlayerScreen';
+import { LibraryScreen } from '../screens/playlists/LibraryScreen';
+import { VideoPlayerScreen } from '../screens/player/VideoPlayerScreen';
 import { RootState } from '../store';
 
 export type RootStackParamList = {
@@ -15,13 +16,13 @@ export type RootStackParamList = {
   Home: undefined;
   Search: undefined;
   Notifications: undefined;
-  Player: { videoId: string; title: string };
   VideoPlayer: { 
     videoId?: string; 
     video?: any; 
     playlist?: any; 
     autoplay?: boolean; 
     playlistId?: string;
+    title?: string;
   };
   AddVideo: undefined;
   CategoryVideos: { categoryId: string; categoryName: string };
@@ -51,11 +52,12 @@ export const AppNavigator: React.FC = () => {
       {isAuthenticated ? (
         <>
           <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="Library" component={LibraryScreen} />
           <Stack.Screen name="CreatePlaylist" component={CreatePlaylistScreen} />
           <Stack.Screen name="ImportPlaylist" component={ImportPlaylistScreen} />
           <Stack.Screen name="AddNotes" component={AddNotesScreen} />
           <Stack.Screen name="PlaylistDetail" component={PlaylistDetailScreen} />
-          <Stack.Screen name="VideoPlayer" component={SimpleVideoPlayerScreen} />
+          <Stack.Screen name="VideoPlayer" component={VideoPlayerScreen} />
         </>
       ) : (
         <Stack.Screen name="Auth" component={AuthScreen} />

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { auth } from '../services/firebase/config';
+import { auth, onAuthStateChanged } from '../services/firebase/config';
 import { authService, FirebaseUser } from '../services/firebase/auth';
 import { setUser, loadUserData } from '../store/authSlice';
 import { AppDispatch } from '../store';
@@ -29,8 +29,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     try {
-      // Check if auth() is available - it will throw if Firebase isn't initialized
-      const unsubscribe = auth().onAuthStateChanged(async (user: FirebaseUser | null) => {
+      // Check if auth is available - it will throw if Firebase isn't initialized
+      const unsubscribe = onAuthStateChanged(async (user: FirebaseUser | null) => {
         console.log('Auth state changed:', user ? `User ${user.uid}` : 'No user');
         dispatch(setUser(user));
         

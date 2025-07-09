@@ -53,9 +53,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   const handleContinuePress = () => {
     if (continueSession && continueSession.videoId) {
-      navigation.navigate('Player', { 
+      navigation.navigate('VideoPlayer', { 
         videoId: continueSession.videoId,
         title: continueSession.title 
+      });
+    } else {
+      // Test with a sample YouTube video ID
+      navigation.navigate('VideoPlayer', { 
+        videoId: 'dQw4w9WgXcQ', // Rick Roll - Never Gonna Give You Up
+        title: 'Sample Video - Never Gonna Give You Up' 
       });
     }
   };
@@ -85,7 +91,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   const handleActivityPress = (activity: any) => {
     if (activity.type === 'video') {
-      navigation.navigate('Player', { 
+      navigation.navigate('VideoPlayer', { 
         videoId: activity.id,
         title: activity.title 
       });

@@ -14,7 +14,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../styles/theme';
 import { useNavigation } from '@react-navigation/native';
-import { playlistService, NoteData } from '../../services/playlists/playlistService';
+import { playlistService, NoteLinkData } from '../../services/playlists/playlistService';
 
 interface NoteLink {
   id: string;
